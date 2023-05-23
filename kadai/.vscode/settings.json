@@ -1,0 +1,5 @@
+{
+    "editor.formatOnSave": true,
+    "terraform.experimentalFeatures.validateOnSave": false,
+    "editor.defaultFormatter": null
+}
