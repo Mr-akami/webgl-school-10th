@@ -285,7 +285,7 @@ class App3 {
     // wing
     const wing1Geometry = new THREE.CylinderGeometry(4, 4, 0.01, 32)
     const wing1 = new THREE.Mesh(wing1Geometry, this.wingMaterial)
-    wing1.position.y += 1.5
+    wing1.position.y += 1.8
     this.wingsGroup.add(wing1)
     this.wingsGroup.rotation.x = 1.5
 
