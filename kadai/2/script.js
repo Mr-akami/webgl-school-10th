@@ -31,6 +31,20 @@ window.addEventListener(
   false
 )
 
+const velocityArray = []
+for (let i = 0; i < 10; i++) {
+  let velocity = new THREE.Vector3(
+    (Math.random() - 0.5) * 2,
+    (Math.random() - 0.5) * 2,
+    (Math.random() - 0.5) * 2
+  )
+  velocityArray.push(velocity)
+}
+
+const getVelocity = (index) => {
+  return velocityArray[index % 10]
+}
+
 /**
  * three.js を効率よく扱うために自家製の制御クラスを定義
  */
@@ -44,7 +58,7 @@ class App3 {
       aspect: window.innerWidth / window.innerHeight,
       near: 0.1,
       far: 20.0,
-      x: 0.0,
+      x: 10.0,
       y: 2.0,
       z: 10.0,
       lookAt: new THREE.Vector3(0.0, 0.0, 0.0),
@@ -88,6 +102,7 @@ class App3 {
     return {
       color: 0xffffff,
       side: THREE.FrontSide,
+      transparent: true,
     }
   }
   /**
@@ -112,12 +127,14 @@ class App3 {
     this.directionalLight // ディレクショナルライト
     this.ambientLight // アンビエントライト
     this.material // マテリアル
+    this.wingMaterial
     this.torusGeometry // トーラスジオメトリ
     this.torusArray // トーラスメッシュの配列
     this.controls // オービットコントロール
     this.axesHelper // 軸ヘルパー
     this.group // グループ
     this.texture // テクスチャ
+    this.fanTexture
     this.composer // エフェクトコンポーザー
     this.renderPass // レンダーパス
     this.glitchPass // グリッチパス
@@ -126,6 +143,8 @@ class App3 {
     this.rotateCount = 0
 
     this.isDown = false // キーの押下状態を保持するフラグ
+    this.collapse = false
+    this.stopCount = 0
 
     // 再帰呼び出しのための this 固定
     this.render = this.render.bind(this)
@@ -137,6 +156,9 @@ class App3 {
         switch (keyEvent.key) {
           case ' ':
             this.isDown = true
+            break
+          case 'Z':
+            this.collapse = true
             break
           default:
         }
@@ -167,18 +189,24 @@ class App3 {
    * アセット（素材）のロードを行う Promise
    */
   load() {
-    return new Promise((resolve) => {
-      // 読み込む画像のパス
-      const imagePath = './sample.jpg'
-      // テクスチャ用のローダーのインスタンスを生成
+    return Promise.all([
+      this.loadTexture('./sample.jpg'),
+      this.loadTexture('./fan.png'),
+    ]).then(([texture1, texture2]) => {
+      this.texture = texture1
+      this.fanTexture = texture2
+    })
+  }
+
+  loadTexture(imagePath) {
+    return new Promise((resolve, reject) => {
       const loader = new THREE.TextureLoader()
-      // ローダーの load メソッドに読み込む画像のパスと、ロード完了時のコールバックを指定
-      loader.load(imagePath, (texture) => {
-        // コールバック関数の引数として、初期化済みのテクスチャオブジェクトが渡されてくる
-        this.texture = texture
-        // Promise を解決
-        resolve()
-      })
+      loader.load(
+        imagePath,
+        (texture) => resolve(texture), // 成功時の処理
+        undefined, // onProgress は使用しない
+        (error) => reject(error) // エラー時の処理
+      )
     })
   }
 
@@ -239,6 +267,9 @@ class App3 {
     // マテリアルにテクスチャを適用
     this.material.map = this.texture
 
+    this.wingMaterial = new THREE.MeshPhongMaterial(App3.MATERIAL_PARAM)
+    this.wingMaterial.map = this.fanTexture
+
     // グループ
     this.group = new THREE.Group()
     this.scene.add(this.group)
@@ -251,15 +282,16 @@ class App3 {
     this.fanGroup.add(this.bodyGroup)
     this.scene.add(this.fanGroup)
 
-    // fan
-    const wing1Geometry = new THREE.CylinderGeometry(0.5, 0.5, 0.1, 32)
-    const wing1 = new THREE.Mesh(wing1Geometry, this.material)
+    // wing
+    const wing1Geometry = new THREE.CylinderGeometry(4, 4, 0.01, 32)
+    const wing1 = new THREE.Mesh(wing1Geometry, this.wingMaterial)
+    wing1.position.y += 1.5
     this.wingsGroup.add(wing1)
     this.wingsGroup.rotation.x = 1.5
 
-    const wingShaftGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.5)
+    const wingShaftGeometry = new THREE.CylinderGeometry(0.05, 0.05, 3.0)
     const wingShaft = new THREE.Mesh(wingShaftGeometry, this.material)
-    wingShaft.position.y = -0.2
+    // wingShaft.position.y = -0
     this.wingsGroup.add(wingShaft)
     this.wingsGroup.position.z = 0.8
 
@@ -272,10 +304,46 @@ class App3 {
     this.headGroup.add(head)
     this.headGroup.add(headShaft)
 
+    // chest
+    const chestGeometry = new THREE.BoxGeometry(3, 2, 3)
+    const chest = new THREE.Mesh(
+      chestGeometry,
+      new THREE.MeshPhongMaterial({ color: 0x734e30 })
+    )
+    this.headGroup.add(chest)
+
+    // arm
+    const rightArmGeometry = new THREE.BoxGeometry(1, 2, 1)
+    const rightArm = new THREE.Mesh(
+      rightArmGeometry,
+      new THREE.MeshPhongMaterial({ color: 0x8cb1cf })
+    )
+    rightArm.position.x += 2
+    this.headGroup.add(rightArm)
+
+    const leftArmGeometry = new THREE.BoxGeometry(1, 2, 1)
+    const leftArm = new THREE.Mesh(
+      leftArmGeometry,
+      new THREE.MeshPhongMaterial({ color: 0x8cb1cf })
+    )
+    leftArm.position.x -= 2
+    this.headGroup.add(leftArm)
+
+    //face
+    const faceGeometry = new THREE.ConeGeometry(1.5, 1.5, 5)
+    const faceMaterial = new THREE.MeshPhongMaterial({ color: 0xff0000 })
+    const face = new THREE.Mesh(faceGeometry, faceMaterial)
+    face.rotateY(1.8)
+    face.position.y += 1.5
+    this.headGroup.add(face)
+
     // body
-    const bodyGeometry = new THREE.CylinderGeometry(0.5, 0.9, 0.2)
-    const body = new THREE.Mesh(bodyGeometry, this.material)
-    body.position.y = -2.0
+    const bodyGeometry = new THREE.CylinderGeometry(1, 2.5, 1.5)
+    const body = new THREE.Mesh(
+      bodyGeometry,
+      new THREE.MeshPhongMaterial({ color: 0x734e30 })
+    )
+    body.position.y = -1.0
     this.bodyGroup.add(body)
 
     // トーラスメッシュ
@@ -328,9 +396,9 @@ class App3 {
     this.dotScreenPass.renderToScreen = true
 
     // ヘルパー
-    const axesBarLength = 5.0
-    this.axesHelper = new THREE.AxesHelper(axesBarLength)
-    this.scene.add(this.axesHelper)
+    // const axesBarLength = 5.0
+    // this.axesHelper = new THREE.AxesHelper(axesBarLength)
+    // this.scene.add(this.axesHelper)
   }
 
   /**
@@ -356,6 +424,24 @@ class App3 {
         this.isRight = this.isRight ? false : true
         this.rotateCount = 0
       }
+    }
+
+    if (this.collapse) {
+      this.composer.render()
+      this.stopCount += 1
+      if (this.stopCount < 100) {
+        return
+      }
+      this.wingsGroup.children.forEach((wing, index) => {
+        wing.position.add(getVelocity(index))
+      })
+      this.headGroup.children.forEach((head, index) => {
+        head.position.add(getVelocity(index))
+      })
+      this.bodyGroup.children.forEach((body, index) => {
+        body.position.add(getVelocity(index))
+      })
+      return
     }
 
     // レンダラーではなく、コンポーザーに対して描画を指示する
