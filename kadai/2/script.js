@@ -298,7 +298,7 @@ class App3 {
     // head
     const headGeometry = new THREE.SphereGeometry(0.5, 32, 16)
     const head = new THREE.Mesh(headGeometry, this.material)
-    const headShaftGeometry = new THREE.CylinderGeometry(0.2, 0.2, 2.0)
+    const headShaftGeometry = new THREE.CylinderGeometry(0.2, 0.2, 1.5)
     const headShaft = new THREE.Mesh(headShaftGeometry, this.material)
     headShaft.position.y = -1.0
     this.headGroup.add(head)
