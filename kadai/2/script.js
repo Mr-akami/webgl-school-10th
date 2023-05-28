@@ -346,37 +346,6 @@ class App3 {
     body.position.y = -1.0
     this.bodyGroup.add(body)
 
-    // トーラスメッシュ
-    // const TORUS_COUNT = 1
-    // const TRANSFORM_SCALE = 5.0
-    // this.torusGeometry = new THREE.TorusGeometry(0.5, 0.2, 8, 16)
-    // this.torusArray = []
-    // for (let i = 0; i < TORUS_COUNT; ++i) {
-    //   // トーラスメッシュのインスタンスを生成
-    //   const torus = new THREE.Mesh(this.torusGeometry, this.material)
-    //   // 座標をランダムに散らす
-    //   torus.position.x = (Math.random() * 2.0 - 1.0) * TRANSFORM_SCALE
-    //   torus.position.y = (Math.random() * 2.0 - 1.0) * TRANSFORM_SCALE
-    //   torus.position.z = (Math.random() * 2.0 - 1.0) * TRANSFORM_SCALE
-    //   this.group.add(torus)
-    //   this.torusArray.push(torus)
-    // }
-
-    // プレーンメッシュ
-    // const PLANE_COUNT = 1
-    // this.planeGeometry = new THREE.PlaneGeometry(1.0, 1.0)
-    // this.planeArray = []
-    // for (let i = 0; i < PLANE_COUNT; ++i) {
-    //   // プレーンメッシュのインスタンスを生成
-    //   // ※マテリアルはトーラスと共通のものを使う
-    //   const plane = new THREE.Mesh(this.planeGeometry, this.material)
-    //   // 座標をランダムに散らす
-    //   plane.position.x = (Math.random() * 2.0 - 1.0) * TRANSFORM_SCALE
-    //   plane.position.y = (Math.random() * 2.0 - 1.0) * TRANSFORM_SCALE
-    //   plane.position.z = (Math.random() * 2.0 - 1.0) * TRANSFORM_SCALE
-    //   this.group.add(plane)
-    // }
-
     // コントロール
     this.controls = new OrbitControls(this.camera, this.renderer.domElement)
 
